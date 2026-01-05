@@ -8,10 +8,5 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PokemonPrediction extends Model
 {
     protected $fillable = ['input_id', 'label', 'confidence'];
-
-    public function input(): BelongsTo
-    {
-        return $this->belongsTo(Input::class);
-    }
 }
 
