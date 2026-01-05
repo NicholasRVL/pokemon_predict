@@ -9,7 +9,7 @@ return new class extends Migration {
     {
         Schema::create('pokemon_predictions', function (Blueprint $table) {
             $table->id();
-            $table->string('image');
+            $table->foreignId('input_id')->constrained('inputs')->onDelete('cascade');
             $table->string('label');
             $table->double('confidence');
             $table->timestamps();

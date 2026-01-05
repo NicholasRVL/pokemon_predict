@@ -3,9 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PokemonPrediction extends Model
 {
-    protected $fillable = ['image', 'label', 'confidence'];
+    protected $fillable = ['input_id', 'label', 'confidence'];
+
+    public function input(): BelongsTo
+    {
+        return $this->belongsTo(Input::class);
+    }
 }
 

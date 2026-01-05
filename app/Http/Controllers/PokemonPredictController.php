@@ -1,22 +1,15 @@
 <?php
 
 namespace App\Http\Controllers;
-
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use App\Models\PokemonPrediction;
+use App\Models\Input;
 use GuzzleHttp\Client;
 
-class PokemonPredictController extends Controller
-{
-    public function predict(Request $request)
-    {
-        $request->validate([
-            'file' => 'required|image|max:5120'
-        ]);
+class PokemonPredictController extends Controller {
+    public function storeResult(Request $request) {
+        $request->validate(['input_id' => 'required|exists:inputs,id']);
 
-        $path = $request->file('file')->store('predictions', 'public');
-
+        $input = Input::findOrFail($request->input_id);
         $client = new Client();
 
         try {
@@ -24,28 +17,27 @@ class PokemonPredictController extends Controller
                 'multipart' => [
                     [
                         'name'     => 'file',
-                        'contents' => fopen(storage_path("app/public/$path"), 'r'),
-                        'filename' => basename($path)
+                        'contents' => fopen(storage_path("app/public/{$input->image}"), 'r'),
+                        'filename' => basename($input->image)
                     ]
-                ],
-                'timeout' => 60
+                ]
             ]);
+
+            $data = json_decode($response->getBody()->getContents(), true);
+
+            // Simpan ke tabel pokemon_predictions tanpa kolom image
+            $prediction = $input->predictions()->create([
+                'label'      => $data['prediction'] ?? 'unknown',
+                'confidence' => $data['predictions'][0]['confidence'] ?? 0
+            ]);
+
+            // Menambahkan data image dari parent agar frontend tetap bisa menampilkan gambar
+            $prediction->image = $input->image;
+
+            return response()->json($prediction);
+
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Flask server unreachable',
-                'message' => $e->getMessage()
-            ], 500);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
-
-        $body = $response->getBody()->getContents();
-        $data = json_decode($body, true);
-
-        PokemonPrediction::create([
-            'image' => $path,
-            'label' => $data['prediction'] ?? 'unknown',
-            'confidence' => $data['predictions'][0]['confidence'] ?? 0
-        ]);
-
-        return response()->json($data);
     }
 }
